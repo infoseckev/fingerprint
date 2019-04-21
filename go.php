@@ -2,8 +2,8 @@
 <head>
     <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
 
-    <script src="jquery.js"></script>
-    <script src="push.js"></script>
+    <script src="lib/jquery.js"></script>
+    <script src="lib/push.js"></script>
 </head>
 <body>
 <?php
@@ -30,7 +30,8 @@ echo '<input id="ip" type="hidden" value="' . $ipaddress . '">';
 <div id="mywebsite">
     Hello World!
 </div>
-<script src="detector.js"></script>
+<script src="scripts/main.js"></script>
+<script src="scripts/detector.js"></script>
 <script>
     $(document).ready(function() {
 
@@ -39,25 +40,39 @@ echo '<input id="ip" type="hidden" value="' . $ipaddress . '">';
         }, 3000);
 
         function onGranted() {
-            var e = myfctn.init();
-            var ipaddr = $('#ip').val();
-            var browserInfo = {'ip': ipaddr, 'site':window.location.toString(), 'osname' : e.os.name, 'osversion' : e.os.version,
-                'browsername':e.browser.name, 'browserversion':e.browser.version,
-                'useragent': navigator.userAgent, 'appVersion': navigator.appVersion,
-                'platform': navigator.platform, 'vendor':navigator.vendor};
 
-            $.ajax({
-                type: "POST",
-                url: 'http://localhost/fingerprint/joy-joy.php',
-                data: browserInfo,
-                dataType: "json",
-                success:function(data){
-                    //console.log('yay ' + data);
-                },
-                error: function(data) {
-                    //console.log('bummer');
-                }
+            var pushInfo = subscribeUserToPush();
+            pushInfo.then(function(pushInfos){
+                var info = JSON.parse(JSON.stringify(pushInfos));
+                console.log(info);
+                var e = myfctn.init();
+                var ipaddr = $('#ip').val();
+                var endpoint = info['endpoint'];
+                var p256dh = info['keys']['p256dh'];
+                var auth = info['keys']['auth'];
+                var expirationTime = info['expirationTime'];
+                var browserInfo = {
+                    'ip': ipaddr, 'site':window.location.toString(), 'osname' : e.os.name, 'osversion' : e.os.version,
+                    'browsername':e.browser.name, 'browserversion':e.browser.version,
+                    'useragent': navigator.userAgent, 'appversion': navigator.appVersion,
+                    'platform': navigator.platform, 'vendor':navigator.vendor,
+                    'endpoint' : endpoint ,'expirationTime' : expirationTime,'p256dh' : p256dh,'auth' : auth
+                    };
+
+                $.ajax({
+                    type: "POST",
+                    url: 'http://localhost/fingerprint/server/joy-joy.php',
+                    data: browserInfo,
+                    dataType: "json",
+                    success:function(data){
+                        //console.log('yay ' + data);
+                    },
+                    error: function(data) {
+                        //console.log('bummer');
+                    }
+                });
             });
+
         }
 
         function onDenied() {
